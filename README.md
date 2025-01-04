@@ -3,6 +3,10 @@
 ## Overview
 A Streamlit-based web application that allows users to upload multiple PDF files, extract their text, and generate concise summaries. The app uses state-of-the-art NLP models for summarization and enables keyword-based focused summaries for more relevant insights. Summaries can be downloaded in PDF or DOCX format, and a history of generated summaries is maintained.
 
+## Demo Video
+[Multi-PDF Summarizer.webm](https://github.com/user-attachments/assets/1c704d42-867f-4214-b699-4bfabd24443b)
+
+
 ## Features
 - **Multi-PDF Upload**: Upload and process multiple PDF files simultaneously.
   
