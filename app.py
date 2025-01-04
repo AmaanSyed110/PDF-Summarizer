@@ -148,66 +148,107 @@ def show_main_interface():
             for uploaded_file in uploaded_files:
                 st.write(f"### Processing: {uploaded_file.name}")
                 
-                with st.spinner("Extracting text from PDF..."):
-                    text = extract_text_from_pdf(uploaded_file)
-                    
-                if text:
-                    if search_query:
-                        with st.spinner("Searching relevant sections..."):
-                            text = search_relevant_sections(text, search_query)
-                    
-                    with st.spinner("Generating summary..."):
-                        summary = generate_summary(
-                            text, 
-                            st.session_state.settings['max_summary_length'],
-                            st.session_state.settings['min_summary_length']
-                        )
-                    
-                    if summary:
-                        st.success("Summary generated successfully!")
-                        st.write(summary)
-                        save_summary_history(uploaded_file.name, summary)
+                # Generate a unique key for this file and search query combination
+                file_key = f"{uploaded_file.name}_{search_query}"
+                
+                # Only process if we haven't generated a summary yet
+                if file_key not in st.session_state.current_summaries:
+                    with st.spinner("Extracting text from PDF..."):
+                        text = extract_text_from_pdf(uploaded_file)
                         
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.write("Download Summary:")
-
-                            # Generate PDF
-                            pdf_summary_filename = f"summary_{uploaded_file.name.split('.')[0]}.pdf"
-                            from fpdf import FPDF
-                            pdf = FPDF()
-                            pdf.add_page()
-                            pdf.set_font("Arial", size=12)
-                            pdf.multi_cell(0, 10, summary)
-                            pdf_output = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-                            pdf.output(pdf_output.name)
-
-                            # Generate DOCX
-                            docx_summary_filename = f"summary_{uploaded_file.name.split('.')[0]}.docx"
-                            from docx import Document
-                            doc = Document()
-                            doc.add_heading("Summary", level=1)
-                            doc.add_paragraph(summary)
-                            docx_output = tempfile.NamedTemporaryFile(delete=False, suffix=".docx")
-                            doc.save(docx_output.name)
-
-                            # Display download buttons
-                            st.download_button(
-                                label="Download as PDF",
-                                data=open(pdf_output.name, "rb").read(),
-                                file_name=pdf_summary_filename,
-                                mime="application/pdf"
-                            )
-                            st.download_button(
-                                label="Download as DOCX",
-                                data=open(docx_output.name, "rb").read(),
-                                file_name=docx_summary_filename,
-                                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    if text:
+                        if search_query:
+                            with st.spinner("Searching relevant sections..."):
+                                text = search_relevant_sections(text, search_query)
+                        
+                        with st.spinner("Generating summary..."):
+                            summary = generate_summary(
+                                text, 
+                                st.session_state.settings['max_summary_length'],
+                                st.session_state.settings['min_summary_length']
                             )
                         
+                        if summary:
+                            # Store the summary in session state
+                            st.session_state.current_summaries[file_key] = summary
+                            save_summary_history(uploaded_file.name, summary)
+                    else:
+                        st.error(f"Failed to process {uploaded_file.name}")
+                        continue
+                
+                # Use the stored summary
+                summary = st.session_state.current_summaries[file_key]
+                st.success("Summary generated successfully!")
+                st.write(summary)
+                
+                col1, col2 = st.columns([1, 2])
+                with col1:
+                    st.write("Download Summary:")
                     
-                else:
-                    st.error(f"Failed to process {uploaded_file.name}")
+                    # Generate PDF with proper encoding
+                    pdf_summary_filename = f"summary_{uploaded_file.name.split('.')[0]}.pdf"
+                    try:
+                        from fpdf import FPDF
+                        
+                        class UTF8PDF(FPDF):
+                            def __init__(self):
+                                super().__init__()
+                                self.add_font('DejaVu', '', 'DejaVuSansCondensed.ttf', uni=True)
+                            
+                            def header(self):
+                                pass
+                            
+                            def footer(self):
+                                pass
+                        
+                        pdf = UTF8PDF()
+                        pdf.add_page()
+                        pdf.set_font('Arial', size=12)
+                        
+                        # Handle Unicode text
+                        summary_clean = summary.encode('latin-1', 'replace').decode('latin-1')
+                        pdf.multi_cell(0, 10, summary_clean)
+                        
+                        pdf_output = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+                        pdf.output(pdf_output.name)
+                    except Exception as e:
+                        # Fallback to basic ASCII if Unicode fails
+                        pdf = FPDF()
+                        pdf.add_page()
+                        pdf.set_font('Arial', size=12)
+                        summary_ascii = ''.join(char if ord(char) < 128 else '?' for char in summary)
+                        pdf.multi_cell(0, 10, summary_ascii)
+                        pdf_output = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+                        pdf.output(pdf_output.name)
+                    
+                    st.download_button(
+                        label="Download as PDF",
+                        data=open(pdf_output.name, "rb").read(),
+                        file_name=pdf_summary_filename,
+                        mime="application/pdf",
+                        key=f"pdf_{file_key}"
+                    )
+                    
+                    # Generate DOCX
+                    docx_summary_filename = f"summary_{uploaded_file.name.split('.')[0]}.docx"
+                    from docx import Document
+                    doc = Document()
+                    doc.add_heading("Summary", level=1)
+                    doc.add_paragraph(summary)  # DOCX handles Unicode correctly
+                    docx_output = tempfile.NamedTemporaryFile(delete=False, suffix=".docx")
+                    doc.save(docx_output.name)
+                    
+                    st.download_button(
+                        label="Download as DOCX",
+                        data=open(docx_output.name, "rb").read(),
+                        file_name=docx_summary_filename,
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        key=f"docx_{file_key}"
+                    )
+                
+                # Clean up temporary files
+                os.unlink(pdf_output.name)
+                os.unlink(docx_output.name)
 
 def show_history_interface():
     st.header("Summary History")
@@ -239,8 +280,8 @@ def show_history_interface():
 def main():
     st.set_page_config(
         page_title="Multi-PDF Summarizer",
-        layout="centered",  # Changed from "wide" to "centered"
-        initial_sidebar_state="collapsed"  # Hide the sidebar by default
+        layout="centered",  
+        initial_sidebar_state="collapsed"  
     )
     
     # Use container to create a more compact layout
