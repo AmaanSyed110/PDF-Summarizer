@@ -72,3 +72,7 @@ Download summaries in your preferred format (PDF or DOCX).
 
 - ### History
 Access past summaries in the **Summary History** section.
+
+
+## Contributions
+Contributions are welcome! Please fork the repository and create a pull request for any feature enhancements or bug fixes.
