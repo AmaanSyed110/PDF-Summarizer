@@ -1,6 +1,6 @@
 import streamlit as st
 import pdfplumber
-from transformers import pipeline
+import openai
 from sentence_transformers import SentenceTransformer
 import numpy as np
 import torch
@@ -9,14 +9,24 @@ import tempfile
 import os
 import pandas as pd
 from datetime import datetime
+from dotenv import load_dotenv
 
-# Add new session state variable for storing current summaries
+# Load environment variables from the .env file
+load_dotenv()
+
+# Get API key and URL from environment variables
+API_KEY = os.getenv("API_KEY")
+BASE_URL = os.getenv("BASE_URL")
+
+# Check if the API_KEY and BASE_URL are loaded correctly
+if not API_KEY or not BASE_URL:
+    raise ValueError("API_KEY or BASE_URL not found in .env file.")
+
+# Initialize session state variables
 if 'current_summaries' not in st.session_state:
     st.session_state.current_summaries = {}
 if 'display_output' not in st.session_state:
     st.session_state.display_output = True
-if 'summarizer' not in st.session_state:
-    st.session_state.summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
 if 'embedding_model' not in st.session_state:
     st.session_state.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
 if 'history' not in st.session_state:
@@ -29,12 +39,15 @@ if 'current_view' not in st.session_state:
     st.session_state.current_view = 'main'
 if 'settings' not in st.session_state:
     st.session_state.settings = {
-        'max_summary_length': 150,
-        'min_summary_length': 50,
+        'max_summary_length': 300,
         'chunk_size': 1000
     }
 
+# Configure OpenAI API
+openai.api_key = API_KEY
+openai.api_base = BASE_URL
 
+# Helper functions
 def switch_to_history():
     st.session_state.current_view = 'history'
 
@@ -78,23 +91,28 @@ def split_text_into_chunks(text, max_chunk_length=1000):
         chunks.append('. '.join(current_chunk) + '.')
     return chunks
 
-def generate_summary(text, max_length=150, min_length=50):
+def generate_summary_with_gpt4_combined(text, max_length=300):
     try:
+        # Split the text into chunks
         chunks = split_text_into_chunks(text)
-        summaries = []
-        progress_bar = st.progress(0)
-        
-        for i, chunk in enumerate(chunks):
-            if len(chunk.strip()) > 10:
-                summary = st.session_state.summarizer(chunk,
-                                                    max_length=max_length,
-                                                    min_length=min_length,
-                                                    do_sample=False)
-                summaries.append(summary[0]['summary_text'])
-            progress_bar.progress((i + 1) / len(chunks))
-        
-        progress_bar.empty()
-        return ' '.join(summaries)
+
+        # Combine all chunks into a single text
+        combined_text = ' '.join(chunks)
+
+        # Generate a single summary for the combined text
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that summarizes text."},
+                {"role": "user", "content": f"Summarize the following text: {combined_text}"}
+            ],
+            max_tokens=max_length,
+            temperature=0.7
+        )
+
+        # Extract and return the summary
+        summary = response['choices'][0]['message']['content']
+        return summary
     except Exception as e:
         st.error(f"Error generating summary: {str(e)}")
         return None
@@ -162,10 +180,10 @@ def show_main_interface():
                                 text = search_relevant_sections(text, search_query)
                         
                         with st.spinner("Generating summary..."):
-                            summary = generate_summary(
+                            # Generate a single summary for the combined chunks
+                            summary = generate_summary_with_gpt4_combined(
                                 text, 
-                                st.session_state.settings['max_summary_length'],
-                                st.session_state.settings['min_summary_length']
+                                st.session_state.settings['max_summary_length']
                             )
                         
                         if summary:
@@ -180,7 +198,7 @@ def show_main_interface():
                 summary = st.session_state.current_summaries[file_key]
                 st.success("Summary generated successfully!")
                 st.write(summary)
-                
+
                 col1, col2 = st.columns([1, 2])
                 with col1:
                     st.write("Download Summary:")
@@ -284,7 +302,6 @@ def main():
         initial_sidebar_state="collapsed"  
     )
     
-    # Use container to create a more compact layout
     main_container = st.container()
     with main_container:
         st.title("📄 Multi-PDF Summarizer")

@@ -7,3 +7,8 @@ scikit-learn
 numpy
 fpdf 
 python-docx
+torch
+openai==0.28
+numpy
+pandas
+python-dotenv
