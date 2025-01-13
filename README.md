@@ -1,39 +1,43 @@
 # PDF-Summarizer
 
 ## Overview
-A Streamlit-based web application that allows users to upload multiple PDF files, extract their text, and generate concise summaries. The app uses state-of-the-art NLP models for summarization and enables keyword-based focused summaries for more relevant insights. Summaries can be downloaded in PDF or DOCX format, and a history of generated summaries is maintained.
+A web application that allows users to upload multiple PDF files and generate concise summaries using GPT-4. Users can focus on specific sections of the text based on keywords and download the summaries in PDF or DOCX formats. The summaries are stored in history for later access and export.
 
 ## Demo Video
 [Multi-PDF Summarizer.webm](https://github.com/user-attachments/assets/1c704d42-867f-4214-b699-4bfabd24443b)
 
 
 ## Features
-- **Multi-PDF Upload**: Upload and process multiple PDF files simultaneously.
+- **Upload Multiple PDFs**: Users can upload multiple PDF files at once.
+
+- **Embedding Generation**: Generate Embeddings using all-MiniLM-L6-v2 model
   
-- **Advanced Summarization**: Generate concise summaries using the [BART-large-cnn model](https://huggingface.co/facebook/bart-large-cnn).
+- **Summarization with GPT-4**: The application uses OpenAI's GPT-4 API to summarize the content of the PDFs.
   
-- **Keyword-Based Focus**: Focus on specific sections by entering keywords.
+- **Keyword Search**: Focus on specific topics within the PDFs using a search query.
   
-- **Download Options**: Export summaries as **PDF** or **DOCX** files.
+- **Download Summaries**: The summaries can be downloaded in both **PDF** and **DOCX** formats.
   
-- **History Management**: View and export past summaries for quick reference.
+- **Summary History**: View and export previous summaries generated in the app.
   
-- **Cosine Similarity Search**: Identify and prioritize sections most relevant to your query.
+- **Export Summaries**: All summaries can be exported as a text file for external use.
 
 ## Tech Stack
 - **Python**: Core programming language.
   
 - **Streamlit**: For creating the interactive web interface.
   
-- **Hugging Face Transformers**: For summarization using the `facebook/bart-large-cnn` model.
+- **OpenAI**: For generating summaries using GPT-4 model
   
-- **Sentence-Transformers**: For embedding-based similarity search.
+- **Sentence-Transformers**: For embedding-based similarity search using `all-MiniLM-L6-v2`.
   
 - **pdfplumber**: For text extraction from PDF files.
   
 - **FPDF**: To create PDF downloads.
   
 - **python-docx**: To create DOCX downloads.
+
+- **python-dotenv**: To load environment variables from a ```.env``` file.
 
 ## Steps to Run the MultiPDF-RAG Project on Your Local Machine:
 - ### Clone the Repository
@@ -54,6 +58,12 @@ venv\Scripts\activate     # On Windows
 Install the required packages listed in the ```requirements.txt``` file
 ```
 pip install -r requirements.txt
+```
+- ### Creating a env file
+Create a ```.env``` file in the root of the project with the following content:
+```
+API_KEY=<your-openai-api-key>
+BASE_URL=<your-api-base-url>
 ```
 
 - ### Run the Application
