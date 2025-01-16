@@ -1,6 +1,6 @@
 import streamlit as st
 import pdfplumber
-import openai
+from openai import OpenAI
 from sentence_transformers import SentenceTransformer
 import numpy as np
 import torch
@@ -15,8 +15,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Get API key and URL from environment variables
-API_KEY = os.getenv("API_KEY")
 BASE_URL = os.getenv("BASE_URL")
+API_KEY = os.getenv("API_KEY")
 
 # Check if the API_KEY and BASE_URL are loaded correctly
 if not API_KEY or not BASE_URL:
@@ -44,8 +44,10 @@ if 'settings' not in st.session_state:
     }
 
 # Configure OpenAI API
-openai.api_key = API_KEY
-openai.api_base = BASE_URL
+client = OpenAI(
+    base_url=BASE_URL, 
+    api_key=API_KEY
+)
 
 # Helper functions
 def switch_to_history():
@@ -100,7 +102,7 @@ def generate_summary_with_gpt4_combined(text, max_length=300):
         combined_text = ' '.join(chunks)
 
         # Generate a single summary for the combined text
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that summarizes text."},
@@ -111,7 +113,7 @@ def generate_summary_with_gpt4_combined(text, max_length=300):
         )
 
         # Extract and return the summary
-        summary = response['choices'][0]['message']['content']
+        summary = response.choices[0].message.content
         return summary
     except Exception as e:
         st.error(f"Error generating summary: {str(e)}")
