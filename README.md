@@ -1,43 +1,43 @@
 # PDF-Summarizer
 
 ## Overview
-A web application that allows users to upload multiple PDF files and generate concise summaries using GPT-4. Users can focus on specific sections of the text based on keywords and download the summaries in PDF or DOCX formats. The summaries are stored in history for later access and export.
+The **Multi-PDF Summarizer** is a Streamlit-based web application that allows users to upload multiple PDF files and generate concise summaries using OpenAI's GPT-4 model. It also supports keyword-based focus to extract relevant sections from the PDFs and uses FAISS for efficient embedding-based search.
 
 ## Demo Video
 [Multi-PDF Summarizer.webm](https://github.com/user-attachments/assets/1c704d42-867f-4214-b699-4bfabd24443b)
 
 
 ## Features
-- **Upload Multiple PDFs**: Users can upload multiple PDF files at once.
+- **Multi-PDF Support**: Upload and process multiple PDF files simultaneously.
 
-- **Embedding Generation**: Generate Embeddings using all-MiniLM-L6-v2 model
+- **AI-Powered Summarization**: Generate summaries using OpenAI's `gpt-4o` model.
   
-- **Summarization with GPT-4**: The application uses OpenAI's GPT-4 API to summarize the content of the PDFs.
+- **Keyword-Based Focus**: Enter keywords to focus on specific topics within the PDFs.
   
-- **Keyword Search**: Focus on specific topics within the PDFs using a search query.
+- **Embedding-Based Search**: Use FAISS and OpenAI's `text-embedding-3-large` model for efficient similarity search.
   
-- **Download Summaries**: The summaries can be downloaded in both **PDF** and **DOCX** formats.
+- **Download Summaries**: Download summaries as **PDF** or **DOCX** files.
   
-- **Summary History**: View and export previous summaries generated in the app.
+- **History Tracking**: View and export previously generated summaries.
   
-- **Export Summaries**: All summaries can be exported as a text file for external use.
-
 ## Tech Stack
-- **Python**: Core programming language.
-  
-- **Streamlit**: For creating the interactive web interface.
-  
-- **OpenAI**: For generating summaries using GPT-4 model
-  
-- **Sentence-Transformers**: For embedding-based similarity search using `all-MiniLM-L6-v2`.
-  
-- **pdfplumber**: For text extraction from PDF files.
-  
-- **FPDF**: To create PDF downloads.
-  
-- **python-docx**: To create DOCX downloads.
+- **streamlit**: For building the web application.
 
-- **python-dotenv**: To load environment variables from a ```.env``` file.
+- **openai**: For interacting with OpenAI's GPT-4 and embedding models.
+
+- **pdfplumber**: For extracting text from PDF files.
+
+- **faiss**: For efficient similarity search using embeddings.
+
+- **python-dotenv**: For loading environment variables from a .env file.
+
+- **numpy**: For numerical operations.
+
+- **pandas**: For data handling (optional, if needed for future features).
+
+- **fpdf**: For generating PDF files from summaries.
+
+- **python-docx**: For generating DOCX files from summaries.
 
 ## Steps to Run the MultiPDF-RAG Project on Your Local Machine:
 - ### Clone the Repository
@@ -62,8 +62,7 @@ pip install -r requirements.txt
 - ### Creating a env file
 Create a ```.env``` file in the root of the project with the following content:
 ```
-API_KEY=<your-openai-api-key>
-BASE_URL=<your-api-base-url>
+OPENAI_API_KEY=<your-openai-api-key>
 ```
 
 - ### Run the Application
