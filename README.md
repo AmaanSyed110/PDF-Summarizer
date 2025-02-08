@@ -21,6 +21,8 @@ The **Multi-PDF Summarizer** is a Streamlit-based web application that allows us
 - **History Tracking**: View and export previously generated summaries.
   
 ## Tech Stack
+- **Python**: The core programming language used for the entire application, including text extraction, summarization, and embedding generation.
+
 - **streamlit**: For building the web application.
 
 - **openai**: For interacting with OpenAI's GPT-4 and embedding models.
