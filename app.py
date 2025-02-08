@@ -1,34 +1,30 @@
 import streamlit as st
 import pdfplumber
 from openai import OpenAI
-from sentence_transformers import SentenceTransformer
 import numpy as np
-import torch
 from pathlib import Path
 import tempfile
 import os
 import pandas as pd
 from datetime import datetime
 from dotenv import load_dotenv
+import faiss  # Import FAISS for efficient similarity search
 
 # Load environment variables from the .env file
 load_dotenv()
 
-# Get API key and URL from environment variables
-BASE_URL = os.getenv("BASE_URL")
-API_KEY = os.getenv("API_KEY")
+# Get OpenAI API key from environment variables
+API_KEY = os.getenv("OPENAI_API_KEY")
 
-# Check if the API_KEY and BASE_URL are loaded correctly
-if not API_KEY or not BASE_URL:
-    raise ValueError("API_KEY or BASE_URL not found in .env file.")
+# Check if the API_KEY is loaded correctly
+if not API_KEY:
+    raise ValueError("OPENAI_API_KEY not found in .env file.")
 
 # Initialize session state variables
 if 'current_summaries' not in st.session_state:
     st.session_state.current_summaries = {}
 if 'display_output' not in st.session_state:
     st.session_state.display_output = True
-if 'embedding_model' not in st.session_state:
-    st.session_state.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
 if 'history' not in st.session_state:
     st.session_state.history = []
 if 'saved_summaries' not in st.session_state:
@@ -44,10 +40,11 @@ if 'settings' not in st.session_state:
     }
 
 # Configure OpenAI API
-client = OpenAI(
-    base_url=BASE_URL, 
-    api_key=API_KEY
-)
+client = OpenAI(api_key=API_KEY)
+
+# Initialize FAISS index for embeddings
+dimension = 3072  # Dimension of text-embedding-3-large embeddings
+faiss_index = faiss.IndexFlatL2(dimension)  # L2 distance for similarity search
 
 # Helper functions
 def switch_to_history():
@@ -93,6 +90,55 @@ def split_text_into_chunks(text, max_chunk_length=1000):
         chunks.append('. '.join(current_chunk) + '.')
     return chunks
 
+def get_embedding(text):
+    """Get embedding from OpenAI API using text-embedding-3-large"""
+    try:
+        response = client.embeddings.create(
+            model="text-embedding-3-large",
+            input=text
+        )
+        return response.data[0].embedding
+    except Exception as e:
+        st.error(f"Error getting embedding: {str(e)}")
+        return None
+
+def cosine_similarity(a, b):
+    """Calculate cosine similarity between two vectors"""
+    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+
+def search_relevant_sections(text, query):
+    try:
+        sentences = text.split('. ')
+        
+        # Get query embedding
+        query_embedding = get_embedding(query)
+        
+        if not query_embedding:
+            return text
+        
+        # Get embeddings for all sentences and add to FAISS index
+        sentence_embeddings = []
+        for sentence in sentences:
+            if sentence.strip():
+                embedding = get_embedding(sentence)
+                if embedding:
+                    sentence_embeddings.append(embedding)
+        
+        # Convert embeddings to numpy array and add to FAISS index
+        sentence_embeddings = np.array(sentence_embeddings).astype('float32')
+        faiss_index.add(sentence_embeddings)
+        
+        # Search for top 5 similar sentences using FAISS
+        query_embedding = np.array([query_embedding]).astype('float32')
+        distances, indices = faiss_index.search(query_embedding, k=5)
+        
+        # Get top 5 most similar sentences
+        relevant_text = '. '.join([sentences[idx] for idx in indices[0]])
+        return relevant_text
+    except Exception as e:
+        st.error(f"Error searching relevant sections: {str(e)}")
+        return text
+
 def generate_summary_with_gpt4_combined(text, max_length=300):
     try:
         # Split the text into chunks
@@ -103,7 +149,7 @@ def generate_summary_with_gpt4_combined(text, max_length=300):
 
         # Generate a single summary for the combined text
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that summarizes text."},
                 {"role": "user", "content": f"Summarize the following text: {combined_text}"}
@@ -117,22 +163,6 @@ def generate_summary_with_gpt4_combined(text, max_length=300):
         return summary
     except Exception as e:
         st.error(f"Error generating summary: {str(e)}")
-        return None
-
-def search_relevant_sections(text, query):
-    try:
-        sentences = text.split('. ')
-        sentence_embeddings = st.session_state.embedding_model.encode(sentences, convert_to_tensor=True)
-        query_embedding = st.session_state.embedding_model.encode(query, convert_to_tensor=True)
-        
-        similarities = torch.nn.functional.cosine_similarity(query_embedding.unsqueeze(0), 
-                                                          sentence_embeddings)
-        
-        top_indices = torch.topk(similarities, min(5, len(sentences))).indices
-        relevant_text = '. '.join([sentences[idx] for idx in top_indices])
-        return relevant_text
-    except Exception as e:
-        st.error(f"Error searching relevant sections: {str(e)}")
         return None
 
 def save_summary_history(filename, summary):
