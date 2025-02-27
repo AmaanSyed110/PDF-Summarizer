@@ -4,7 +4,8 @@
 The **Multi-PDF Summarizer** is a Streamlit-based web application that allows users to upload multiple PDF files and generate concise summaries using OpenAI's GPT-4 model. It also supports keyword-based focus to extract relevant sections from the PDFs and uses FAISS for efficient embedding-based search.
 
 ## Demo Video
-[Multi-PDF Summarizer.webm](https://github.com/user-attachments/assets/1c704d42-867f-4214-b699-4bfabd24443b)
+https://github.com/user-attachments/assets/5e00755e-ac1e-466b-b2b1-02a5966c6ff6
+
 
 
 ## Features
