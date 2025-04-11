@@ -30,7 +30,7 @@ if 'current_view' not in st.session_state:
     st.session_state.current_view = 'main'
 if 'settings' not in st.session_state:
     st.session_state.settings = {
-        'max_summary_length_words': 200,  # Default to 200 words
+        'max_summary_length_words': 200, 
         'chunk_size': 1000
     }
 if 'faiss_index' not in st.session_state:
