@@ -8,7 +8,7 @@ The **Multi-PDF Summarizer** is a Streamlit-based web application that allows us
 
 
 ## Demo Video
-https://github.com/user-attachments/assets/5e00755e-ac1e-466b-b2b1-02a5966c6ff6
+[Multi-PDF_Summarizer.webm](https://github.com/user-attachments/assets/c5eb6e94-6701-4d23-b9c3-2bfe59439ea9)
 
 
 
